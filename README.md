@@ -1,107 +1,173 @@
-# Delivery Tracker
+# Delivery Tracker — Exercício do Capítulo 4
 
-Projeto da disciplina de Programação Web II, usando Node.js, Express e arquitetura em camadas.
+> **Programação Web II — IFAL/Maceió.** Este projeto implementa a **Delivery Tracker API** utilizando arquitetura em camadas. A aplicação separa as responsabilidades entre Controllers, Services, Repositories e Database, mantendo as regras de negócio no Service e os dados em memória.
 
-## Como rodar
+## Como usar este repositório
 
-Instale as dependências:
+1. Instale as dependências:
 
 ```bash
 npm install
 ```
 
-Depois inicie o servidor:
+2. Inicie a aplicação:
 
 ```bash
 npm start
 ```
 
-Por padrão ele fica em `http://localhost:3000`.
+A API estará disponível em:
 
-Também dá para trocar a porta:
-
-```bash
-PORT=4000 npm start
+```text
+http://localhost:3000
 ```
 
-## Organização
+3. Para executar o autograder, deixe o servidor rodando e abra outro terminal.
+
+### PowerShell (Windows)
+
+```powershell
+$env:BASE_URL="http://localhost:3000"
+node autograder/check.mjs
+```
+
+### Linux/macOS
+
+```bash
+BASE_URL=http://localhost:3000 node autograder/check.mjs
+```
+
+O projeto possui também o workflow do GitHub Actions para executar as verificações automaticamente após um `git push`.
+
+## Arquitetura do projeto
 
 ```text
 src/
 ├── controllers/
-├── database/
-├── repositories/
-├── routes/
 ├── services/
+├── repositories/
+├── database/
+├── routes/
 └── utils/
 ```
 
-A aplicação mantém os dados em memória. O Service concentra as regras da entrega e o Repository faz a comunicação com essa persistência.
+- **Controllers:** recebem as requisições HTTP e retornam as respostas.
+- **Services:** concentram as regras de negócio.
+- **Repositories:** cuidam do acesso aos dados.
+- **Database:** mantém a persistência simulada em memória.
+- **Routes:** definem as rotas e fazem a composição das dependências.
+- **Utils:** contém recursos auxiliares.
 
-## Rotas principais
+A regra de negócio fica no **Service**, enquanto o **Repository** trabalha somente com os dados.
 
-### Verificar a API
+## Endpoints
 
-```bash
-curl http://localhost:3000/api/health
+### Health Check
+
+```http
+GET /api/health
+```
+
+Resposta:
+
+```json
+{
+  "status": "ok"
+}
 ```
 
 ### Criar uma entrega
 
+```http
+POST /api/entregas
+```
+
+Exemplo:
+
 ```bash
 curl -X POST http://localhost:3000/api/entregas \
   -H "Content-Type: application/json" \
-  -d '{"descricao":"Caixa de documentos","origem":"Maceió","destino":"Recife"}'
+  -d '{"descricao":"Documentos","origem":"Maceió","destino":"Recife"}'
 ```
 
 ### Listar entregas
 
-```bash
-curl http://localhost:3000/api/entregas
+```http
+GET /api/entregas
 ```
 
-### Filtrar pelo status
+### Filtrar por status
 
-```bash
-curl "http://localhost:3000/api/entregas?status=EM_TRANSITO"
+```http
+GET /api/entregas?status=EM_TRANSITO
 ```
 
-### Consultar uma entrega
+### Buscar uma entrega
+
+```http
+GET /api/entregas/:id
+```
+
+Exemplo:
 
 ```bash
 curl http://localhost:3000/api/entregas/1
 ```
 
-### Avançar a entrega
+### Avançar o status
 
-```bash
-curl -X PATCH http://localhost:3000/api/entregas/1/avancar
+```http
+PATCH /api/entregas/:id/avancar
 ```
 
-### Cancelar
+O fluxo de uma entrega é:
 
-```bash
-curl -X PATCH http://localhost:3000/api/entregas/1/cancelar
+```text
+CRIADA → EM_TRANSITO → ENTREGUE
 ```
 
-### Ver histórico
+### Cancelar uma entrega
 
-```bash
-curl http://localhost:3000/api/entregas/1/historico
+```http
+PATCH /api/entregas/:id/cancelar
 ```
 
-## Status da entrega
+### Consultar histórico
 
-O fluxo normal é:
-
-`CRIADA -> EM_TRANSITO -> ENTREGUE`
-
-Uma entrega também pode ser cancelada enquanto ainda não foi entregue.
-
-## Verificação
-
-Com o servidor rodando:
-
-```bash
-npm run check
+```http
+GET /api/entregas/:id/historico
 ```
+
+## Regras de negócio
+
+- `descricao`, `origem` e `destino` são obrigatórios.
+- A origem deve ser diferente do destino.
+- Toda entrega começa com o status `CRIADA`.
+- Uma entrega ativa não pode ser duplicada com a mesma descrição, origem e destino.
+- O avanço de status segue `CRIADA → EM_TRANSITO → ENTREGUE`.
+- Uma entrega pode ser cancelada enquanto não estiver `ENTREGUE` ou `CANCELADA`.
+- As alterações realizadas na entrega são registradas no histórico.
+
+## Códigos de resposta
+
+| Código | Descrição |
+|:---:|---|
+| `200` | Operação realizada com sucesso |
+| `201` | Entrega criada |
+| `400` | Dados de entrada inválidos |
+| `404` | Recurso não encontrado |
+| `409` | Entrega ativa duplicada |
+| `422` | Regra de negócio ou transição inválida |
+
+## Testes
+
+O projeto possui um autograder para verificar o funcionamento das rotas da Delivery Tracker API.
+
+No PowerShell:
+
+```powershell
+$env:BASE_URL="http://localhost:3000"
+node autograder/check.mjs
+```
+
+Os dados da aplicação são armazenados em memória e são perdidos quando o servidor é encerrado.
