@@ -1,0 +1,13 @@
+{
+  "name": "pweb2-delivery-tracker",
+  "version": "1.0.0",
+  "description": "Delivery Tracker - arquitetura em camadas",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "check": "node autograder/check.mjs"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
